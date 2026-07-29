@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   base: '/beijing_house_map/',
+  build: { outDir: 'docs' },
   plugins: [react()],
   server: {
     host: '0.0.0.0',
