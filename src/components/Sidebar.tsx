@@ -27,6 +27,7 @@ export default function Sidebar() {
   const [editingLm, setEditingLm] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editVisits, setEditVisits] = useState(0)
+  const [editCat, setEditCat] = useState<LandmarkCategory>('work')
   const { favorites, removeFavorite, updateScore } = useFavoritesStore()
   const { history, addEntry, clearHistory, exportData } = useHistoryStore()
   const {
@@ -250,6 +251,16 @@ export default function Sidebar() {
                   <input type="text" value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     className="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+                  <select value={editCat} onChange={(e) => {
+                      const cat = e.target.value as LandmarkCategory
+                      setEditCat(cat)
+                      setEditVisits(getCategoryDefaults(cat).defaultVisits)
+                    }}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm">
+                    {LANDMARK_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">每年</span>
                     <input type="number" value={editVisits}
@@ -259,7 +270,7 @@ export default function Sidebar() {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => {
-                      updateLandmark(lm.id, { name: editName, visitsPerYear: editVisits })
+                      updateLandmark(lm.id, { name: editName, visitsPerYear: editVisits, category: editCat })
                       setEditingLm(null)
                     }} className="flex-1 py-1 text-xs bg-green-500 text-white rounded">保存</button>
                     <button onClick={() => setEditingLm(null)}
@@ -277,7 +288,7 @@ export default function Sidebar() {
                   </div>
                   <div className="flex gap-1 ml-1">
                     <button onClick={() => {
-                      setEditingLm(lm.id); setEditName(lm.name); setEditVisits(lm.visitsPerYear)
+                      setEditingLm(lm.id); setEditName(lm.name); setEditVisits(lm.visitsPerYear); setEditCat(lm.category)
                     }} className="text-blue-400 hover:text-blue-600 text-xs">✎</button>
                     <button onClick={() => removeLandmark(lm.id)} className="text-red-400 hover:text-red-600">×</button>
                   </div>
@@ -384,6 +395,11 @@ export default function Sidebar() {
           ))}
         </div>
       )}
+
+      {/* 数据路径 */}
+      <div className="border-t shrink-0 px-3 py-1.5 text-[10px] text-gray-300">
+        💾 data/landmarks.json · favorites.json · history.json
+      </div>
     </div>
   )
 }
