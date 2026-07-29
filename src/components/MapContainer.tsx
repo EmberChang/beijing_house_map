@@ -9,7 +9,7 @@ export default function MapContainer() {
   const markersRef = useRef<any[]>([])
   const [mapReady, setMapReady] = useState(false)
   const { landmarks } = useLandmarkStore()
-  const { searchResults, setSelectedProperty } = useRouteStore()
+  const { searchResults, selectedProperty, setSelectedProperty } = useRouteStore()
 
   // 初始化地图
   useEffect(() => {
@@ -47,6 +47,17 @@ export default function MapContainer() {
       cancelled = true
     }
   }, [])
+
+  // 选中楼盘时自动定位地图
+  useEffect(() => {
+    if (!mapInstanceRef.current || !selectedProperty) return
+    const map = mapInstanceRef.current
+    // 延迟执行，确保高德地图标记已渲染完毕
+    const timer = setTimeout(() => {
+      map.setZoomAndCenter(15, [selectedProperty.lng, selectedProperty.lat])
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [selectedProperty])
 
   // 地标标记更新
   useEffect(() => {
