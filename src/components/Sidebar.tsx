@@ -79,6 +79,7 @@ export default function Sidebar() {
   const [lmName, setLmName] = useState('')
   const [lmAddr, setLmAddr] = useState('')
   const [lmCat, setLmCat] = useState<Landmark['category']>('frequent')
+  const [lmVisits, setLmVisits] = useState(200)
   const [lmError, setLmError] = useState('')
   const [lmTips, setLmTips] = useState<TipItem[]>([])
   const [lmTipsVisible, setLmTipsVisible] = useState(false)
@@ -122,8 +123,9 @@ export default function Sidebar() {
         name: lmName.trim(), address: lmAddr.trim(),
         lng: geo.lng, lat: geo.lat,
         category: lmCat, weight: CATEGORY_WEIGHTS[lmCat],
+        visitsPerYear: lmVisits,
       })
-      setLmName(''); setLmAddr(''); setLmCat('frequent'); setShowAddLandmark(false)
+      setLmName(''); setLmAddr(''); setLmCat('frequent'); setLmVisits(200); setShowAddLandmark(false)
     } catch { setLmError('添加失败') }
   }
 
@@ -218,6 +220,13 @@ export default function Sidebar() {
                     <option key={v} value={v}>{l}</option>
                   ))}
                 </select>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 whitespace-nowrap">每年去</span>
+                  <input type="number" min={1} max={3650} value={lmVisits}
+                    onChange={(e) => setLmVisits(Number(e.target.value) || 1)}
+                    className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm text-center" />
+                  <span className="text-xs text-gray-500">次</span>
+                </div>
                 {lmError && <p className="text-red-500 text-xs">{lmError}</p>}
                 <button onClick={handleAddLandmark}
                   className="w-full py-2 bg-green-500 text-white rounded-md text-sm">确认添加</button>
@@ -232,7 +241,7 @@ export default function Sidebar() {
                     <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">{CATEGORY_LABELS[lm.category]}</span>
                     <span className="font-medium text-sm truncate">{lm.name}</span>
                   </div>
-                  <p className="text-xs text-gray-400 truncate mt-0.5">{lm.address}</p>
+                  <p className="text-xs text-gray-400 truncate mt-0.5">{lm.address} · 每年{lm.visitsPerYear || lm.weight * 30}次</p>
                 </div>
                 <button onClick={() => removeLandmark(lm.id)} className="ml-2 text-red-400 hover:text-red-600">×</button>
               </div>

@@ -131,14 +131,14 @@ export function calculateScore(
     })
   }
 
-  // 按地标权重计算总分
-  const totalWeight = landmarks.reduce((sum, l) => sum + l.weight, 0)
+  // 按每年访问次数加权计算总分
+  const totalVisits = landmarks.reduce((sum, l) => sum + (l.visitsPerYear || l.weight * 30), 0)
   const total =
-    totalWeight > 0
+    totalVisits > 0
       ? breakdown.reduce((sum, b) => {
           const landmark = landmarks.find((l) => l.id === b.landmarkId)
-          const w = landmark?.weight || 1
-          return sum + (b.score * w) / totalWeight
+          const visits = landmark?.visitsPerYear || (landmark?.weight || 1) * 30
+          return sum + (b.score * visits) / totalVisits
         }, 0)
       : breakdown.reduce((sum, b) => sum + b.score, 0) / Math.max(1, breakdown.length)
 

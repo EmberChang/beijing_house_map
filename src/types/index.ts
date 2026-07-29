@@ -7,6 +7,7 @@ export interface Landmark {
   lat: number
   category: 'home' | 'my_office' | 'spouse_office' | 'frequent' | 'occasional'
   weight: number // 1-10, 影响评分权重
+  visitsPerYear: number // 每年去该地标的次数
 }
 
 // ===== 楼盘类型 =====

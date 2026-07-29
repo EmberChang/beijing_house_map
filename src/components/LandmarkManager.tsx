@@ -49,6 +49,7 @@ export default function LandmarkManager() {
         lat: geo.lat,
         category: newCategory,
         weight: CATEGORY_WEIGHTS[newCategory],
+        visitsPerYear: CATEGORY_WEIGHTS[newCategory] * 30,
       }
 
       addLandmark(landmark)
