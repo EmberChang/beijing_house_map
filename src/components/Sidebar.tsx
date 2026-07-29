@@ -188,12 +188,13 @@ export default function Sidebar() {
                   <input type="text" placeholder="搜索地址..." value={lmAddr}
                     onChange={(e) => handleLmAddrChange(e.target.value)}
                     onFocus={() => { if (lmTips.length > 0) setLmTipsVisible(true) }}
-                    onBlur={() => setTimeout(() => setLmTipsVisible(false), 200)}
+                    onBlur={() => setTimeout(() => setLmTipsVisible(false), 300)}
                     className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm" />
                   {lmTipsVisible && lmTips.length > 0 && (
                     <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
                       {lmTips.map((tip, i) => (
-                        <button key={tip.id || i} onClick={() => selectTip(tip)}
+                        <button key={tip.id || i}
+                          onMouseDown={(e) => { e.preventDefault(); selectTip(tip) }}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-50 last:border-0">
                           <div className="font-medium text-gray-800 truncate">{tip.name}</div>
                           <div className="text-xs text-gray-400 truncate">{tip.address}</div>
