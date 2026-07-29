@@ -112,6 +112,13 @@ export default function MapContainer() {
     const AMap = (window as any).AMap
     if (!AMap || !mapInstanceRef.current) return
     const map = mapInstanceRef.current
+
+    // 清除旧搜索结果标记
+    markersRef.current.forEach((m: any) => {
+      if (m._isSearchResult) m.setMap(null)
+    })
+    markersRef.current = markersRef.current.filter((m: any) => !m._isSearchResult)
+
     searchResults.forEach((property) => {
       const marker = new AMap.Marker({
         position: [property.lng, property.lat],
@@ -121,6 +128,7 @@ export default function MapContainer() {
           direction: 'bottom',
         },
       })
+      ;(marker as any)._isSearchResult = true
       marker.on('click', () => {
         setSelectedProperty(property)
         showInfoWindow(property)
