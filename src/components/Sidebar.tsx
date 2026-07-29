@@ -6,7 +6,8 @@ import { searchPOI, planRoute, inputTips } from '../services/amap'
 import type { TipItem } from '../services/amap'
 import { calculateScore } from '../services/scoreEngine'
 import { setMapCalculateHandler } from './MapContainer'
-import type { Landmark, Property, PropertyRouteResult, TravelMode } from '../types'
+import { useHistoryStore } from '../stores/historyStore'
+import type { Landmark, Property, PropertyRouteResult, TravelMode, CalcHistoryItem } from '../types'
 
 const CATEGORY_LABELS: Record<Landmark['category'], string> = {
   home: '🏠 家', my_office: '💼 我的公司', spouse_office: '💼 老婆公司',
@@ -16,7 +17,7 @@ const CATEGORY_WEIGHTS: Record<Landmark['category'], number> = {
   home: 10, my_office: 10, spouse_office: 10, frequent: 6, occasional: 3,
 }
 
-type Tab = 'search' | 'landmarks' | 'favorites'
+type Tab = 'search' | 'landmarks' | 'favorites' | 'history'
 
 export default function Sidebar() {
   const [tab, setTab] = useState<Tab>('search')
@@ -26,6 +27,7 @@ export default function Sidebar() {
 
   const { landmarks, addLandmark, removeLandmark } = useLandmarkStore()
   const { favorites, removeFavorite } = useFavoritesStore()
+  const { history, addEntry, clearHistory } = useHistoryStore()
   const {
     searchResults, setSearchResults, setSelectedProperty, selectedProperty,
     propertyRoutes, setPropertyRoutes, setIsLoadingRoutes, scoreConfig,
@@ -70,6 +72,7 @@ export default function Sidebar() {
       }
       const result = calculateScore(property, landmarks, routeMap, scoreConfig)
       setPropertyRoutes(result)
+      addEntry(property, result)
     } catch (err) { console.error('Route calc error:', err) }
     finally { setIsLoadingRoutes(false) }
   }
@@ -144,10 +147,10 @@ export default function Sidebar() {
     <div className="absolute top-3 left-3 z-20 w-80 max-h-[calc(100vh-24px)] flex flex-col bg-white/95 backdrop-blur rounded-lg shadow-lg overflow-hidden">
       {/* Tabs */}
       <div className="flex border-b shrink-0">
-        {(['search', 'landmarks', 'favorites'] as Tab[]).map((t) => (
+        {(['search', 'landmarks', 'favorites', 'history'] as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab === t ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-            {{ search: '🔍 搜索', landmarks: '📍 地标', favorites: '⭐ 收藏' }[t]}
+            {{ search: '🔍 搜索', landmarks: '📍 地标', favorites: '⭐ 收藏', history: '📋 历史' }[t]}
             {t === 'favorites' && favorites.length > 0 &&
               <span className="ml-1 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">{favorites.length}</span>}
           </button>
@@ -269,6 +272,47 @@ export default function Sidebar() {
                     className="flex-1 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">📊 计算</button>
                   <button onClick={() => removeFavorite(fav.id)}
                     className="flex-1 py-1.5 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200">删除</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'history' && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-400">{history.length} 条记录</span>
+              {history.length > 0 && (
+                <button onClick={clearHistory} className="text-xs text-red-400 hover:text-red-600">清空</button>
+              )}
+            </div>
+            {history.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">暂无计算记录<br/><span className="text-xs">搜索地点后点击"计算路线"</span></p>
+            ) : history.map((item) => (
+              <div key={item.id} className="p-2 bg-gray-50 rounded-md">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm truncate flex-1">{item.property.name}</span>
+                  <span className={`text-sm font-bold ml-2 ${item.result.score.total >= 70 ? 'text-green-600' : item.result.score.total >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
+                    {item.result.score.total}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 truncate">{item.property.address}</p>
+                <div className="mt-1 text-xs text-gray-400">
+                  {new Date(item.timestamp).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+                </div>
+                <div className="mt-1.5 space-y-0.5">
+                  {item.result.routes.slice(0, 3).map((r) => (
+                    <div key={r.landmarkId} className="flex justify-between text-xs text-gray-500">
+                      <span>{r.landmarkName}</span>
+                      <span>
+                        🚌{r.modes.transit ? Math.round(r.modes.transit.duration/60)+'min' : '-'}
+                        &nbsp;🚗{r.modes.driving ? Math.round(r.modes.driving.duration/60)+'min' : '-'}
+                      </span>
+                    </div>
+                  ))}
+                  {item.result.routes.length > 3 && (
+                    <p className="text-xs text-gray-300">...还有 {item.result.routes.length - 3} 个地标</p>
+                  )}
                 </div>
               </div>
             ))}

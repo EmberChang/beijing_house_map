@@ -106,3 +106,11 @@ export interface FavoriteProperty extends Property {
   addedAt: number // timestamp
   score?: number // 缓存的最新评分
 }
+
+// ===== 计算历史 =====
+export interface CalcHistoryItem {
+  id: string
+  timestamp: number
+  property: Property
+  result: PropertyRouteResult
+}
