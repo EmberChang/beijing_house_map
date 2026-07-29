@@ -83,15 +83,24 @@ export default function Sidebar() {
   const [lmTips, setLmTips] = useState<TipItem[]>([])
   const [lmTipsVisible, setLmTipsVisible] = useState(false)
   const lmTipsTimer = useRef<ReturnType<typeof setTimeout>>()
+  const lmAddrRef = useRef('')
 
   const handleLmAddrChange = async (value: string) => {
     setLmAddr(value)
+    lmAddrRef.current = value
     if (lmTipsTimer.current) clearTimeout(lmTipsTimer.current)
     if (value.trim().length < 2) { setLmTips([]); setLmTipsVisible(false); return }
     lmTipsTimer.current = setTimeout(async () => {
-      const tips = await inputTips(value)
-      setLmTips(tips)
-      setLmTipsVisible(tips.length > 0)
+      try {
+        const tips = await inputTips(value)
+        // 使用 ref 比较，确保用户没有继续输入
+        if (value === lmAddrRef.current) {
+          setLmTips(tips)
+          setLmTipsVisible(tips.length > 0)
+        }
+      } catch (err) {
+        console.error('Input tips error:', err)
+      }
     }, 300)
   }
 

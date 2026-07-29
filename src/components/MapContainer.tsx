@@ -56,14 +56,18 @@ export default function MapContainer() {
     const map = mapInstanceRef.current
     if (!AMap || !map) return
 
+    // 关闭已有信息窗
+    if (infoWindowRef.current) infoWindowRef.current.close()
+
     const favorited = isFavorite(property.id)
+    const uid = 'hm_' + Date.now()
     const content = `
       <div style="min-width:180px;padding:4px 0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
         <div style="font-weight:bold;font-size:14px;margin-bottom:4px;color:#1a1a1a">${property.name}</div>
         <div style="font-size:12px;color:#999;margin-bottom:8px;line-height:1.4">${property.address}</div>
         <div style="display:flex;gap:6px">
-          <button id="hm-calc-btn" style="flex:1;padding:6px 0;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">📊 计算路线</button>
-          <button id="hm-fav-btn" style="flex:1;padding:6px 0;background:${favorited ? '#f59e0b' : '#10b981'};color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">${favorited ? '⭐ 已收藏' : '➕ 收藏'}</button>
+          <button id="${uid}-calc" style="flex:1;padding:6px 0;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">📊 计算路线</button>
+          <button id="${uid}-fav" style="flex:1;padding:6px 0;background:${favorited ? '#f59e0b' : '#10b981'};color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">${favorited ? '⭐ 已收藏' : '➕ 收藏'}</button>
         </div>
       </div>`
 
@@ -75,19 +79,33 @@ export default function MapContainer() {
     infoWindow.open(map, [property.lng, property.lat])
     infoWindowRef.current = infoWindow
 
-    setTimeout(() => {
-      const calcBtn = document.getElementById('hm-calc-btn')
-      const favBtn = document.getElementById('hm-fav-btn')
-      if (calcBtn) calcBtn.onclick = () => {
-        infoWindow.close()
-        if (globalCalculateFn) globalCalculateFn(property)
+    // 绑定按钮事件
+    const bindButtons = () => {
+      const calcBtn = document.getElementById(`${uid}-calc`)
+      const favBtn = document.getElementById(`${uid}-fav`)
+      if (calcBtn) {
+        calcBtn.onclick = (e) => {
+          e.stopPropagation()
+          infoWindow.close()
+          if (globalCalculateFn) globalCalculateFn(property)
+        }
       }
-      if (favBtn) favBtn.onclick = () => {
-        if (isFavorite(property.id)) removeFavorite(property.id)
-        else addFavorite(property)
-        infoWindow.close()
+      if (favBtn) {
+        favBtn.onclick = (e) => {
+          e.stopPropagation()
+          if (isFavorite(property.id)) {
+            removeFavorite(property.id)
+          } else {
+            addFavorite(property)
+          }
+          // 关闭后重新打开以刷新按钮状态
+          infoWindow.close()
+          setTimeout(() => showInfoWindow(property), 150)
+        }
       }
-    }, 100)
+    }
+
+    setTimeout(bindButtons, 100)
   }
 
   useEffect(() => {
