@@ -15,7 +15,7 @@ const getCategoryDefaults = (cat: LandmarkCategory) =>
 
 const CATEGORY_LABEL = (cat: LandmarkCategory) => getCategoryDefaults(cat).label
 
-type Tab = 'search' | 'landmarks' | 'favorites' | 'history'
+type Tab = 'search' | 'landmarks' | 'favorites' | 'ranking'
 
 export default function Sidebar() {
   const [tab, setTab] = useState<Tab>('search')
@@ -179,10 +179,10 @@ export default function Sidebar() {
     <div className="absolute top-3 left-3 z-20 w-80 max-h-[calc(100vh-24px)] flex flex-col bg-white/95 backdrop-blur rounded-lg shadow-lg overflow-hidden">
       {/* Tabs */}
       <div className="flex border-b shrink-0">
-        {(['search', 'landmarks', 'favorites', 'history'] as Tab[]).map((t) => (
+        {(['search', 'landmarks', 'favorites', 'ranking'] as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab === t ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-            {{ search: '🔍 搜索', landmarks: '📍 地标', favorites: '⭐ 收藏', history: '📋 历史' }[t]}
+            {{ search: '🔍 搜索', landmarks: '📍 地标', favorites: '⭐ 收藏', ranking: '🏆 排行' }[t]}
             {t === 'favorites' && favorites.length > 0 &&
               <span className="ml-1 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">{favorites.length}</span>}
           </button>
@@ -359,10 +359,10 @@ export default function Sidebar() {
           </div>
         )}
 
-        {tab === 'history' && (
+        {tab === 'ranking' && (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400">{history.length} 条记录</span>
+              <span className="text-xs text-gray-400">{history.length} 条 · 按评分排序</span>
               <div className="flex gap-2">
                 <button onClick={() => {
                   const json = exportData()
@@ -378,34 +378,9 @@ export default function Sidebar() {
               </div>
             </div>
             {history.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">暂无计算记录<br/><span className="text-xs">搜索地点后点击"计算路线"</span></p>
-            ) : history.map((item) => (
-              <div key={item.id} className="p-2 bg-gray-50 rounded-md">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm truncate flex-1">{item.property.name}</span>
-                  <span className={`text-sm font-bold ml-2 ${item.result.score.total >= 70 ? 'text-green-600' : item.result.score.total >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
-                    {item.result.score.total}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 truncate">{item.property.address}</p>
-                <div className="mt-1 text-xs text-gray-400">
-                  {new Date(item.timestamp).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}
-                </div>
-                <div className="mt-1.5 space-y-0.5">
-                  {item.result.routes.slice(0, 3).map((r) => (
-                    <div key={r.landmarkId} className="flex justify-between text-xs text-gray-500">
-                      <span>{r.landmarkName}</span>
-                      <span>
-                        🚌{r.modes.transit ? Math.round(r.modes.transit.duration/60)+'min' : '-'}
-                        &nbsp;🚗{r.modes.driving ? Math.round(r.modes.driving.duration/60)+'min' : '-'}
-                      </span>
-                    </div>
-                  ))}
-                  {item.result.routes.length > 3 && (
-                    <p className="text-xs text-gray-300">...还有 {item.result.routes.length - 3} 个地标</p>
-                  )}
-                </div>
-              </div>
+              <p className="text-gray-400 text-sm text-center py-4">暂无计算记录</p>
+            ) : [...history].sort((a, b) => b.result.score.total - a.result.score.total).map((item, idx) => (
+              <ExpandableHistoryItem key={item.id} item={item} rank={idx + 1} />
             ))}
           </div>
         )}
@@ -435,6 +410,49 @@ export default function Sidebar() {
       <div className="border-t shrink-0 px-3 py-1.5 text-[10px] text-gray-300">
         💾 data/landmarks.json · favorites.json · history.json
       </div>
+    </div>
+  )
+}
+
+// 可展开的历史排行项
+function ExpandableHistoryItem({ item, rank }: { item: any; rank: number }) {
+  const [expanded, setExpanded] = useState(false)
+  const total = item.result.score.total
+  const scoreColor = total >= 70 ? 'text-green-600' : total >= 50 ? 'text-yellow-600' : 'text-red-500'
+
+  return (
+    <div className="p-2 bg-gray-50 rounded-md">
+      <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className={`text-xs font-bold w-5 text-center ${rank <= 3 ? (rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-gray-400' : 'text-orange-400') : 'text-gray-300'}`}>
+            {rank <= 3 ? ['🥇','🥈','🥉'][rank-1] : rank}
+          </span>
+          <span className="font-medium text-sm truncate">{item.property.name}</span>
+        </div>
+        <span className={`text-sm font-bold ml-2 ${scoreColor}`}>{total}</span>
+      </div>
+      <p className="text-xs text-gray-400 truncate ml-7">{item.property.address}</p>
+      <p className="text-xs text-gray-300 ml-7">
+        {new Date(item.timestamp).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+      </p>
+      {expanded && (
+        <div className="mt-2 ml-7 space-y-0.5">
+          {item.result.routes.map((r: any) => (
+            <div key={r.landmarkId} className="flex justify-between text-xs text-gray-500">
+              <span>{r.landmarkName}</span>
+              <span>
+                🚌{r.modes.transit ? Math.round(r.modes.transit.duration/60)+'min' : '-'}
+                &nbsp;🚗{r.modes.driving ? Math.round(r.modes.driving.duration/60)+'min' : '-'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {item.result.routes.length > 0 && !expanded && (
+        <p className="text-xs text-blue-400 ml-7 mt-1 cursor-pointer" onClick={() => setExpanded(true)}>
+          ▶ 展开 {item.result.routes.length} 个地标详情
+        </p>
+      )}
     </div>
   )
 }
