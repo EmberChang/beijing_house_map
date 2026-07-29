@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { loadAMap } from '../services/amap'
+import { loadAMap, reverseGeocode } from '../services/amap'
 import { useLandmarkStore } from '../stores/landmarkStore'
 import { useRouteStore } from '../stores/routeStore'
 import { useFavoritesStore } from '../stores/favoritesStore'
@@ -18,7 +18,7 @@ export default function MapContainer() {
   const infoWindowRef = useRef<any>(null)
   const [mapReady, setMapReady] = useState(false)
   const { landmarks } = useLandmarkStore()
-  const { searchResults, selectedProperty, setSelectedProperty } = useRouteStore()
+  const { searchResults, selectedProperty, setSelectedProperty, focusLocation, setFocusLocation } = useRouteStore()
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore()
 
   useEffect(() => {
@@ -34,6 +34,20 @@ export default function MapContainer() {
         map.addControl(new AMap.Scale())
         map.addControl(new AMap.ToolBar({ position: 'RT' }))
         map.on('click', () => { if (infoWindowRef.current) infoWindowRef.current.close() })
+        // 地图点击选点：右键或长按获取位置
+        map.on('rightclick', async (e: any) => {
+          const addr = await reverseGeocode(e.lnglat.lng, e.lnglat.lat)
+          if (!addr) return
+          const prop: Property = {
+            id: 'click_' + Date.now(),
+            name: addr.split(/区|县|市/).pop()?.trim() || addr,
+            address: addr,
+            lng: e.lnglat.lng,
+            lat: e.lnglat.lat,
+          }
+          setSelectedProperty(prop)
+          showInfoWindow(prop)
+        })
         mapInstanceRef.current = map
         if (!cancelled) setMapReady(true)
       } catch (err) { console.error('Map init error:', err) }
@@ -50,6 +64,13 @@ export default function MapContainer() {
     }, 100)
     return () => clearTimeout(timer)
   }, [selectedProperty])
+
+  // 外部触发地图定位（点击卡片等）
+  useEffect(() => {
+    if (!mapInstanceRef.current || !focusLocation) return
+    mapInstanceRef.current.setZoomAndCenter(15, [focusLocation.lng, focusLocation.lat])
+    setFocusLocation(null)
+  }, [focusLocation, setFocusLocation])
 
   function showInfoWindow(property: Property) {
     const AMap = (window as any).AMap

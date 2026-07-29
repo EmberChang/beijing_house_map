@@ -7,12 +7,14 @@ interface RouteStore {
   isLoadingRoutes: boolean
   scoreConfig: ScoreConfig
   searchResults: Property[]
+  focusLocation: { lng: number; lat: number } | null
 
   setSelectedProperty: (property: Property | null) => void
   setPropertyRoutes: (routes: PropertyRouteResult | null) => void
   setIsLoadingRoutes: (loading: boolean) => void
   setScoreConfig: (config: Partial<ScoreConfig>) => void
   setSearchResults: (results: Property[]) => void
+  setFocusLocation: (loc: { lng: number; lat: number } | null) => void
 }
 
 export const useRouteStore = create<RouteStore>((set) => ({
@@ -29,6 +31,7 @@ export const useRouteStore = create<RouteStore>((set) => ({
     walkingDistancePenalty: 0.5,
   },
   searchResults: [],
+  focusLocation: null,
 
   setSelectedProperty: (property) => set({ selectedProperty: property }),
   setPropertyRoutes: (routes) => set({ propertyRoutes: routes }),
@@ -36,4 +39,5 @@ export const useRouteStore = create<RouteStore>((set) => ({
   setScoreConfig: (config) =>
     set((state) => ({ scoreConfig: { ...state.scoreConfig, ...config } })),
   setSearchResults: (results) => set({ searchResults: results }),
+  setFocusLocation: (loc) => set({ focusLocation: loc }),
 }))

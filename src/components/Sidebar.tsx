@@ -33,7 +33,7 @@ export default function Sidebar() {
   const [batchCalculating, setBatchCalculating] = useState(false)
   const {
     searchResults, setSearchResults, setSelectedProperty, selectedProperty,
-    propertyRoutes, setPropertyRoutes, setIsLoadingRoutes, scoreConfig,
+    propertyRoutes, setPropertyRoutes, setIsLoadingRoutes, scoreConfig, setFocusLocation,
   } = useRouteStore()
 
   // 注册地图计算回调
@@ -307,7 +307,8 @@ export default function Sidebar() {
                   </div>
                 </div>
               ) : (
-                <div key={lm.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                <div key={lm.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 transition-colors"
+                  onClick={() => setFocusLocation({ lng: lm.lng, lat: lm.lat })}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">{CATEGORY_LABEL(lm.category)}</span>
@@ -338,8 +339,8 @@ export default function Sidebar() {
             {favorites.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-4">暂无收藏<br/><span className="text-xs">在地图上点击标记，选择"收藏"</span></p>
             ) : favorites.map((fav) => (
-              <div key={fav.id} className="p-2 bg-gray-50 rounded-md">
-                <div className="flex items-center justify-between">
+              <div key={fav.id} className="p-2 bg-gray-50 rounded-md" onClick={() => setFocusLocation({ lng: fav.lng, lat: fav.lat })}>
+                <div className="flex items-center justify-between cursor-pointer">
                   <span className="font-medium text-sm truncate flex-1">{fav.name}</span>
                   {fav.score !== undefined && (
                     <span className={`text-sm font-bold ml-2 ${fav.score >= 70 ? 'text-green-600' : fav.score >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
