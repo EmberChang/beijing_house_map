@@ -14,7 +14,7 @@ export default function App() {
     loadLandmarks()
     loadFavorites()
     loadHistory()
-  }, [loadLandmarks, loadFavorites, loadHistory])
+  }, [])
 
   return (
     <div className="w-full h-full relative overflow-hidden">

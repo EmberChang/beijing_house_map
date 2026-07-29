@@ -23,7 +23,10 @@ export default function Sidebar() {
   const [isSearching, setIsSearching] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
 
-  const { landmarks, addLandmark, removeLandmark } = useLandmarkStore()
+  const { landmarks, addLandmark, updateLandmark, removeLandmark } = useLandmarkStore()
+  const [editingLm, setEditingLm] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editVisits, setEditVisits] = useState(0)
   const { favorites, removeFavorite, updateScore } = useFavoritesStore()
   const { history, addEntry, clearHistory, exportData } = useHistoryStore()
   const {
@@ -242,16 +245,44 @@ export default function Sidebar() {
             {landmarks.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-4">暂无地标</p>
             ) : landmarks.map((lm) => (
-              <div key={lm.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">{CATEGORY_LABEL(lm.category)}</span>
-                    <span className="font-medium text-sm truncate">{lm.name}</span>
+              editingLm === lm.id ? (
+                <div key={lm.id} className="space-y-2 p-3 bg-blue-50 rounded-md">
+                  <input type="text" value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">每年</span>
+                    <input type="number" value={editVisits}
+                      onChange={(e) => setEditVisits(Number(e.target.value) || 1)}
+                      className="w-20 px-2 py-1 border border-gray-200 rounded text-sm text-center" />
+                    <span className="text-xs text-gray-500">次</span>
                   </div>
-                  <p className="text-xs text-gray-400 truncate mt-0.5">{lm.address} · 每年{lm.visitsPerYear || lm.weight * 30}次</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => {
+                      updateLandmark(lm.id, { name: editName, visitsPerYear: editVisits })
+                      setEditingLm(null)
+                    }} className="flex-1 py-1 text-xs bg-green-500 text-white rounded">保存</button>
+                    <button onClick={() => setEditingLm(null)}
+                      className="flex-1 py-1 text-xs bg-gray-300 rounded">取消</button>
+                  </div>
                 </div>
-                <button onClick={() => removeLandmark(lm.id)} className="ml-2 text-red-400 hover:text-red-600">×</button>
-              </div>
+              ) : (
+                <div key={lm.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">{CATEGORY_LABEL(lm.category)}</span>
+                      <span className="font-medium text-sm truncate">{lm.name}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{lm.address} · 每年{lm.visitsPerYear || lm.weight * 30}次</p>
+                  </div>
+                  <div className="flex gap-1 ml-1">
+                    <button onClick={() => {
+                      setEditingLm(lm.id); setEditName(lm.name); setEditVisits(lm.visitsPerYear)
+                    }} className="text-blue-400 hover:text-blue-600 text-xs">✎</button>
+                    <button onClick={() => removeLandmark(lm.id)} className="text-red-400 hover:text-red-600">×</button>
+                  </div>
+                </div>
+              )
             ))}
           </div>
         )}
