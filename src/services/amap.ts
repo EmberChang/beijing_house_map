@@ -36,9 +36,10 @@ export async function reverseGeocode(lng: number, lat: number): Promise<string |
 }
 
 // ===== POI 搜索 =====
-export async function searchPOI(keywords: string, city = '北京'): Promise<Property[]> {
+export async function searchPOI(keywords: string, city = '北京', types?: string): Promise<Property[]> {
+  const typeParam = types ? `&types=${encodeURIComponent(types)}` : ''
   const res = await fetch(
-    `${AMAP_BASE}/place/text?key=${AMAP_KEY}&keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city)}&citylimit=true&offset=25`
+    `${AMAP_BASE}/place/text?key=${AMAP_KEY}&keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city)}&citylimit=true&offset=25&children=1${typeParam}`
   )
   const data = await res.json()
   if (data.status === '1' && data.pois) {
@@ -211,14 +212,22 @@ export function loadAMapScript(): Promise<void> {
 
   amapLoadPromise = new Promise((resolve, reject) => {
     const key = AMAP_KEY
-    const version = import.meta.env.VITE_AMAP_VERSION || '2.0'
     const script = document.createElement('script')
-    script.src = `https://webapi.amap.com/v=${version}/maps?v=2.0&key=${key}&plugin=AMap.Driving,AMap.Transfer,AMap.Walking,AMap.PlaceSearch,AMap.Geocoder`
+    script.src = `https://webapi.amap.com/v/2.0/maps?v=2.0&key=${key}&plugin=AMap.Driving,AMap.Transfer,AMap.Walking,AMap.PlaceSearch,AMap.Geocoder`
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Map script load timeout'))
+    }, 10000)
+
     script.onload = () => {
+      clearTimeout(timeout)
       amapLoaded = true
       resolve()
     }
-    script.onerror = reject
+    script.onerror = () => {
+      clearTimeout(timeout)
+      reject(new Error('Map script load failed'))
+    }
     document.head.appendChild(script)
   })
 

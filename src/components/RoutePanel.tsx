@@ -57,10 +57,12 @@ export default function RoutePanel() {
 
   if (!selectedProperty) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-4">
-        <p className="text-gray-400 text-sm text-center py-4">
-          请在地图上点击楼盘或搜索楼盘
-        </p>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="text-center py-6">
+          <div className="text-5xl mb-3">🏠</div>
+          <p className="text-gray-400 text-sm">搜索楼盘开始分析</p>
+          <p className="text-gray-300 text-xs mt-1">输入关键词搜索北京小区</p>
+        </div>
       </div>
     )
   }
@@ -92,7 +94,14 @@ export default function RoutePanel() {
       </button>
 
       {landmarks.length === 0 && (
-        <p className="text-xs text-orange-500 text-center">请先添加地标</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+          <p className="font-medium mb-1">📌 使用步骤：</p>
+          <ol className="list-decimal list-inside space-y-0.5 text-amber-600">
+            <li>在左侧"我的地标"中添加常去地点</li>
+            <li>搜索并选择目标楼盘</li>
+            <li>点击"计算通勤路线"查看分析</li>
+          </ol>
+        </div>
       )}
 
       {propertyRoutes && (
