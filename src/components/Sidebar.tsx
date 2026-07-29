@@ -30,6 +30,7 @@ export default function Sidebar() {
   const [editCat, setEditCat] = useState<LandmarkCategory>('work')
   const { favorites, removeFavorite, updateScore } = useFavoritesStore()
   const { history, addEntry, clearHistory, exportData } = useHistoryStore()
+  const [batchCalculating, setBatchCalculating] = useState(false)
   const {
     searchResults, setSearchResults, setSelectedProperty, selectedProperty,
     propertyRoutes, setPropertyRoutes, setIsLoadingRoutes, scoreConfig,
@@ -78,6 +79,34 @@ export default function Sidebar() {
       updateScore(property.id, result.score.total)
     } catch (err) { console.error('Route calc error:', err) }
     finally { setIsLoadingRoutes(false) }
+  }
+
+  const handleBatchCalculate = async () => {
+    if (landmarks.length === 0 || favorites.length === 0) return
+    setBatchCalculating(true)
+    const modes: TravelMode[] = ['driving', 'transit', 'walking']
+    for (const fav of favorites) {
+      setSelectedProperty(fav)
+      const routeMap = new Map()
+      for (const landmark of landmarks) {
+        const modeMap = new Map()
+        for (const mode of modes) {
+          const route = await planRoute(
+            { lng: fav.lng, lat: fav.lat },
+            { lng: landmark.lng, lat: landmark.lat },
+            mode
+          )
+          modeMap.set(mode, route)
+          await new Promise((r) => setTimeout(r, 350))
+        }
+        routeMap.set(landmark.id, modeMap)
+      }
+      const result = calculateScore(fav, landmarks, routeMap, scoreConfig)
+      setPropertyRoutes(result)
+      addEntry(fav, result)
+      updateScore(fav.id, result.score.total)
+    }
+    setBatchCalculating(false)
   }
 
   // ---- 地标表单 ----
@@ -300,6 +329,12 @@ export default function Sidebar() {
 
         {tab === 'favorites' && (
           <div className="space-y-2">
+            {favorites.length > 0 && (
+              <button onClick={handleBatchCalculate} disabled={batchCalculating || landmarks.length === 0}
+                className="w-full py-2 text-sm bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 transition-colors">
+                {batchCalculating ? '⏳ 批量计算中...' : '📊 全部重新计算'}
+              </button>
+            )}
             {favorites.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-4">暂无收藏<br/><span className="text-xs">在地图上点击标记，选择"收藏"</span></p>
             ) : favorites.map((fav) => (
