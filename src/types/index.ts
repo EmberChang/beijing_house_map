@@ -1,13 +1,28 @@
 // ===== 地标类型 =====
+export type LandmarkCategory = 'home' | 'work' | 'business' | 'school' | 'hospital' | 'park' | 'gym' | 'restaurant' | 'transport' | 'other'
+
+export const LANDMARK_CATEGORIES: { value: LandmarkCategory; label: string; defaultVisits: number }[] = [
+  { value: 'home',        label: '🏠 家',       defaultVisits: 365 },
+  { value: 'work',        label: '💼 公司',     defaultVisits: 250 },
+  { value: 'business',    label: '🛍️ 商圈',     defaultVisits: 52 },
+  { value: 'school',      label: '🏫 学校',     defaultVisits: 200 },
+  { value: 'hospital',    label: '🏥 医院',     defaultVisits: 12 },
+  { value: 'park',        label: '🌳 公园',     defaultVisits: 24 },
+  { value: 'gym',         label: '🏋️ 健身',     defaultVisits: 100 },
+  { value: 'restaurant',  label: '🍽️ 餐饮',     defaultVisits: 36 },
+  { value: 'transport',   label: '🚉 交通枢纽',  defaultVisits: 100 },
+  { value: 'other',       label: '📍 其他',     defaultVisits: 12 },
+]
+
 export interface Landmark {
   id: string
   name: string
   address: string
   lng: number
   lat: number
-  category: 'home' | 'my_office' | 'spouse_office' | 'frequent' | 'occasional'
-  weight: number // 1-10, 影响评分权重
-  visitsPerYear: number // 每年去该地标的次数
+  category: LandmarkCategory
+  weight: number
+  visitsPerYear: number
 }
 
 // ===== 楼盘类型 =====

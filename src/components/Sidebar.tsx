@@ -7,15 +7,13 @@ import type { TipItem } from '../services/amap'
 import { calculateScore } from '../services/scoreEngine'
 import { setMapCalculateHandler } from './MapContainer'
 import { useHistoryStore } from '../stores/historyStore'
-import type { Landmark, Property, PropertyRouteResult, TravelMode, CalcHistoryItem } from '../types'
+import type { Landmark, Property, TravelMode, LandmarkCategory } from '../types'
+import { LANDMARK_CATEGORIES } from '../types'
 
-const CATEGORY_LABELS: Record<Landmark['category'], string> = {
-  home: '🏠 家', my_office: '💼 我的公司', spouse_office: '💼 老婆公司',
-  frequent: '⭐ 常去', occasional: '📍 偶尔',
-}
-const CATEGORY_WEIGHTS: Record<Landmark['category'], number> = {
-  home: 10, my_office: 10, spouse_office: 10, frequent: 6, occasional: 3,
-}
+const getCategoryDefaults = (cat: LandmarkCategory) =>
+  LANDMARK_CATEGORIES.find(c => c.value === cat) || LANDMARK_CATEGORIES[9]
+
+const CATEGORY_LABEL = (cat: LandmarkCategory) => getCategoryDefaults(cat).label
 
 type Tab = 'search' | 'landmarks' | 'favorites' | 'history'
 
@@ -81,8 +79,8 @@ export default function Sidebar() {
   const [showAddLandmark, setShowAddLandmark] = useState(false)
   const [lmName, setLmName] = useState('')
   const [lmAddr, setLmAddr] = useState('')
-  const [lmCat, setLmCat] = useState<Landmark['category']>('frequent')
-  const [lmVisits, setLmVisits] = useState(200)
+  const [lmCat, setLmCat] = useState<LandmarkCategory>('work')
+  const [lmVisits, setLmVisits] = useState(250)
   const [lmError, setLmError] = useState('')
   const [lmTips, setLmTips] = useState<TipItem[]>([])
   const [lmTipsVisible, setLmTipsVisible] = useState(false)
@@ -125,10 +123,10 @@ export default function Sidebar() {
         id: 'lm_' + Date.now(),
         name: lmName.trim(), address: lmAddr.trim(),
         lng: geo.lng, lat: geo.lat,
-        category: lmCat, weight: CATEGORY_WEIGHTS[lmCat],
+        category: lmCat, weight: 10,
         visitsPerYear: lmVisits,
       })
-      setLmName(''); setLmAddr(''); setLmCat('frequent'); setLmVisits(200); setShowAddLandmark(false)
+      setLmName(''); setLmAddr(''); setLmCat('work'); setLmVisits(250); setShowAddLandmark(false)
     } catch { setLmError('添加失败') }
   }
 
@@ -217,10 +215,15 @@ export default function Sidebar() {
                     </div>
                   )}
                 </div>
-                <select value={lmCat} onChange={(e) => setLmCat(e.target.value as any)}
+                <select value={lmCat} onChange={(e) => {
+                    const cat = e.target.value as LandmarkCategory
+                    setLmCat(cat)
+                    const defaults = getCategoryDefaults(cat)
+                    setLmVisits(defaults.defaultVisits)
+                  }}
                   className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm">
-                  {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
+                  {LANDMARK_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
                 <div className="flex items-center gap-2">
@@ -241,7 +244,7 @@ export default function Sidebar() {
               <div key={lm.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">{CATEGORY_LABELS[lm.category]}</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">{CATEGORY_LABEL(lm.category)}</span>
                     <span className="font-medium text-sm truncate">{lm.name}</span>
                   </div>
                   <p className="text-xs text-gray-400 truncate mt-0.5">{lm.address} · 每年{lm.visitsPerYear || lm.weight * 30}次</p>

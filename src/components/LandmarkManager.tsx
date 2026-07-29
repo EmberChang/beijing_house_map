@@ -1,30 +1,18 @@
 import { useState } from 'react'
 import { useLandmarkStore } from '../stores/landmarkStore'
 import { geocode } from '../services/amap'
-import type { Landmark } from '../types'
+import type { Landmark, LandmarkCategory } from '../types'
+import { LANDMARK_CATEGORIES } from '../types'
 
-const CATEGORY_LABELS: Record<Landmark['category'], string> = {
-  home: '🏠 家',
-  my_office: '💼 我的公司',
-  spouse_office: '💼 老婆公司',
-  frequent: '⭐ 常去地点',
-  occasional: '📍 偶尔去',
-}
-
-const CATEGORY_WEIGHTS: Record<Landmark['category'], number> = {
-  home: 10,
-  my_office: 10,
-  spouse_office: 10,
-  frequent: 6,
-  occasional: 3,
-}
+const getDefaults = (cat: LandmarkCategory) =>
+  LANDMARK_CATEGORIES.find(c => c.value === cat) || LANDMARK_CATEGORIES[9]
 
 export default function LandmarkManager() {
   const { landmarks, addLandmark, removeLandmark } = useLandmarkStore()
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [newAddress, setNewAddress] = useState('')
-  const [newCategory, setNewCategory] = useState<Landmark['category']>('frequent')
+  const [newCategory, setNewCategory] = useState<LandmarkCategory>('work')
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState('')
 
@@ -48,14 +36,14 @@ export default function LandmarkManager() {
         lng: geo.lng,
         lat: geo.lat,
         category: newCategory,
-        weight: CATEGORY_WEIGHTS[newCategory],
-        visitsPerYear: CATEGORY_WEIGHTS[newCategory] * 30,
+        weight: 10,
+        visitsPerYear: getDefaults(newCategory).defaultVisits,
       }
 
       addLandmark(landmark)
       setNewName('')
       setNewAddress('')
-      setNewCategory('frequent')
+      setNewCategory('work')
       setIsAdding(false)
     } catch {
       setError('添加失败，请重试')
@@ -94,12 +82,12 @@ export default function LandmarkManager() {
           />
           <select
             value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value as Landmark['category'])}
+            onChange={(e) => setNewCategory(e.target.value as LandmarkCategory)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+            {LANDMARK_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
               </option>
             ))}
           </select>
@@ -128,7 +116,7 @@ export default function LandmarkManager() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                    {CATEGORY_LABELS[landmark.category]}
+                    {getDefaults(landmark.category).label}
                   </span>
                   <span className="font-medium text-sm truncate">{landmark.name}</span>
                 </div>
