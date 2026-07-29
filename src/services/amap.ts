@@ -55,6 +55,35 @@ export async function searchPOI(keywords: string, city = '北京'): Promise<Prop
   return []
 }
 
+// ===== 输入提示（自动补全） =====
+export interface TipItem {
+  id: string
+  name: string
+  address: string
+  district: string
+  location: string // "lng,lat"
+}
+
+export async function inputTips(keywords: string, city = '北京'): Promise<TipItem[]> {
+  if (!keywords.trim()) return []
+  const res = await fetch(
+    `${AMAP_BASE}/assistant/inputtips?key=${AMAP_KEY}&keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city)}&citylimit=true`
+  )
+  const data = await res.json()
+  if (data.status === '1' && data.tips) {
+    return data.tips
+      .filter((t: any) => t.location && t.location.length > 0)
+      .map((t: any) => ({
+        id: t.id || '',
+        name: t.name,
+        address: t.district + (t.address || ''),
+        district: t.district || '',
+        location: t.location,
+      }))
+  }
+  return []
+}
+
 // ===== 路径规划 =====
 export async function planRoute(
   origin: { lng: number; lat: number },
