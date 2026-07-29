@@ -2,97 +2,98 @@ import { useEffect, useRef, useState } from 'react'
 import { loadAMap } from '../services/amap'
 import { useLandmarkStore } from '../stores/landmarkStore'
 import { useRouteStore } from '../stores/routeStore'
+import { useFavoritesStore } from '../stores/favoritesStore'
+import type { Property } from '../types'
+
+// 全局回调注册，让 MapContainer 暴露 calculate 方法给外部
+let globalCalculateFn: ((prop: Property) => void) | null = null
+export function setMapCalculateHandler(fn: (prop: Property) => void) {
+  globalCalculateFn = fn
+}
 
 export default function MapContainer() {
   const mapRef = useRef<any>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const infoWindowRef = useRef<any>(null)
   const [mapReady, setMapReady] = useState(false)
   const { landmarks } = useLandmarkStore()
   const { searchResults, selectedProperty, setSelectedProperty } = useRouteStore()
+  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore()
 
-  // 初始化地图
   useEffect(() => {
     let cancelled = false
-
     async function initMap() {
       try {
         const AMap = await loadAMap()
         if (cancelled) return
-
-        if (mapInstanceRef.current) {
-          setMapReady(true)
-          return
-        }
-
+        if (mapInstanceRef.current) { setMapReady(true); return }
         const map = new AMap.Map(mapRef.current, {
-          zoom: 12,
-          center: [116.397428, 39.90923],
-          viewMode: '3D',
+          zoom: 12, center: [116.397428, 39.90923], viewMode: '3D',
         })
-
         map.addControl(new AMap.Scale())
         map.addControl(new AMap.ToolBar({ position: 'RT' }))
-
+        map.on('click', () => { if (infoWindowRef.current) infoWindowRef.current.close() })
         mapInstanceRef.current = map
         if (!cancelled) setMapReady(true)
-      } catch (err) {
-        console.error('Map init error:', err)
-      }
+      } catch (err) { console.error('Map init error:', err) }
     }
-
     initMap()
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
-  // 选中楼盘时自动定位地图
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedProperty) return
     const map = mapInstanceRef.current
-    // 延迟执行，确保高德地图标记已渲染完毕
     const timer = setTimeout(() => {
       map.setZoomAndCenter(15, [selectedProperty.lng, selectedProperty.lat])
     }, 100)
     return () => clearTimeout(timer)
   }, [selectedProperty])
 
-  // 地标标记更新
+  function showInfoWindow(property: Property) {
+    const AMap = (window as any).AMap
+    const map = mapInstanceRef.current
+    if (!AMap || !map) return
+
+    const favorited = isFavorite(property.id)
+    const content = `
+      <div style="min-width:180px;padding:4px 0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif">
+        <div style="font-weight:bold;font-size:14px;margin-bottom:4px;color:#1a1a1a">${property.name}</div>
+        <div style="font-size:12px;color:#999;margin-bottom:8px;line-height:1.4">${property.address}</div>
+        <div style="display:flex;gap:6px">
+          <button id="hm-calc-btn" style="flex:1;padding:6px 0;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">📊 计算路线</button>
+          <button id="hm-fav-btn" style="flex:1;padding:6px 0;background:${favorited ? '#f59e0b' : '#10b981'};color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">${favorited ? '⭐ 已收藏' : '➕ 收藏'}</button>
+        </div>
+      </div>`
+
+    const infoWindow = new AMap.InfoWindow({
+      content,
+      offset: new AMap.Pixel(0, -35),
+      closeWhenClickMap: true,
+    })
+    infoWindow.open(map, [property.lng, property.lat])
+    infoWindowRef.current = infoWindow
+
+    setTimeout(() => {
+      const calcBtn = document.getElementById('hm-calc-btn')
+      const favBtn = document.getElementById('hm-fav-btn')
+      if (calcBtn) calcBtn.onclick = () => {
+        infoWindow.close()
+        if (globalCalculateFn) globalCalculateFn(property)
+      }
+      if (favBtn) favBtn.onclick = () => {
+        if (isFavorite(property.id)) removeFavorite(property.id)
+        else addFavorite(property)
+        infoWindow.close()
+      }
+    }, 100)
+  }
+
   useEffect(() => {
     const AMap = (window as any).AMap
     if (!AMap || !mapInstanceRef.current) return
-
-    // 清除旧标记
-    markersRef.current.forEach((m: any) => {
-      m.setMap(null)
-    })
-    markersRef.current = []
-
     const map = mapInstanceRef.current
-
-    landmarks.forEach((landmark) => {
-      const marker = new AMap.Marker({
-        position: [landmark.lng, landmark.lat],
-        title: landmark.name,
-        label: {
-          content: `<div style="background:#e74c3c;color:#fff;padding:2px 8px;border-radius:12px;font-size:12px;white-space:nowrap">${landmark.name}</div>`,
-          direction: 'top',
-        },
-      })
-      marker.setMap(map)
-      markersRef.current.push(marker)
-    })
-  }, [landmarks])
-
-  // 搜索结果标记更新
-  useEffect(() => {
-    const AMap = (window as any).AMap
-    if (!AMap || !mapInstanceRef.current) return
-
-    const map = mapInstanceRef.current
-
     searchResults.forEach((property) => {
       const marker = new AMap.Marker({
         position: [property.lng, property.lat],
@@ -102,35 +103,42 @@ export default function MapContainer() {
           direction: 'bottom',
         },
       })
-
       marker.on('click', () => {
         setSelectedProperty(property)
-        map.setCenter([property.lng, property.lat])
+        showInfoWindow(property)
       })
-
       marker.setMap(map)
       markersRef.current.push(marker)
     })
-  }, [searchResults, setSelectedProperty])
+  }, [searchResults])
+
+  useEffect(() => {
+    const AMap = (window as any).AMap
+    if (!AMap || !mapInstanceRef.current) return
+    markersRef.current.forEach((m: any) => { if (m._isLandmark) m.setMap(null) })
+    const map = mapInstanceRef.current
+    landmarks.forEach((landmark) => {
+      const marker = new AMap.Marker({
+        position: [landmark.lng, landmark.lat],
+        title: landmark.name,
+        label: {
+          content: `<div style="background:#e74c3c;color:#fff;padding:2px 8px;border-radius:12px;font-size:12px;white-space:nowrap">${landmark.name}</div>`,
+          direction: 'top',
+        },
+      })
+      ;(marker as any)._isLandmark = true
+      marker.setMap(map)
+      markersRef.current.push(marker)
+    })
+  }, [landmarks])
 
   return (
     <>
-      <div
-        ref={mapRef}
-        className="map-container absolute inset-0"
-        style={{ zIndex: 0 }}
-      />
+      <div ref={mapRef} className="map-container absolute inset-0" style={{ zIndex: 0 }} />
       {!mapReady && (
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center"
-          style={{
-            zIndex: 1,
-            background: 'linear-gradient(135deg, #e8f4f8 0%, #d4e8f0 30%, #c8e6c9 60%, #e8f5e9 100%)',
-          }}
-        >
+        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ zIndex: 1, background: 'linear-gradient(135deg, #e8f4f8 0%, #d4e8f0 30%, #c8e6c9 60%, #e8f5e9 100%)' }}>
           <div className="text-6xl mb-4">🗺️</div>
           <p className="text-gray-500 text-sm">地图加载中...</p>
-          <p className="text-gray-400 text-xs mt-1">搜索楼盘后将在此显示标记</p>
         </div>
       )}
     </>

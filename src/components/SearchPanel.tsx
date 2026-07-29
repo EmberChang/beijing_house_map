@@ -3,9 +3,11 @@ import { searchPOI } from '../services/amap'
 import { useRouteStore } from '../stores/routeStore'
 
 const QUICK_SEARCHES = [
-  { label: '🏘️ 小区', keyword: '小区', types: '120300' },
-  { label: '🏗️ 楼盘', keyword: '楼盘', types: '120300' },
-  { label: '🏠 新房', keyword: '新房', types: '120300' },
+  { label: '🏘️ 小区', keyword: '小区' },
+  { label: '🏗️ 楼盘', keyword: '楼盘' },
+  { label: '🏠 新房', keyword: '新房' },
+  { label: '🏢 写字楼', keyword: '写字楼' },
+  { label: '🏪 商场', keyword: '商场' },
 ]
 
 export default function SearchPanel() {
@@ -18,7 +20,7 @@ export default function SearchPanel() {
     if (!q) return
     setIsSearching(true)
     try {
-      const results = await searchPOI(q, '北京', types || '120300')
+      const results = await searchPOI(q, '北京')
       setSearchResults(results)
       if (results.length > 0) {
         setSelectedProperty(results[0])
@@ -60,7 +62,7 @@ export default function SearchPanel() {
             key={qs.label}
             onClick={() => {
               setKeyword(qs.keyword)
-              handleSearch(qs.keyword, qs.types)
+              handleSearch(qs.keyword)
             }}
             className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors"
           >

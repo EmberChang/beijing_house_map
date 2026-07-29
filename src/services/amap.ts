@@ -37,10 +37,9 @@ export async function reverseGeocode(lng: number, lat: number): Promise<string |
 }
 
 // ===== POI 搜索 =====
-export async function searchPOI(keywords: string, city = '北京', types?: string): Promise<Property[]> {
-  const typeParam = types ? `&types=${encodeURIComponent(types)}` : ''
+export async function searchPOI(keywords: string, city = '北京'): Promise<Property[]> {
   const res = await fetch(
-    `${AMAP_BASE}/place/text?key=${AMAP_KEY}&keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city)}&citylimit=true&offset=25&children=1${typeParam}`
+    `${AMAP_BASE}/place/text?key=${AMAP_KEY}&keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city)}&citylimit=true&offset=25&children=1`
   )
   const data = await res.json()
   if (data.status === '1' && data.pois) {

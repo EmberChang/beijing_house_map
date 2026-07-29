@@ -100,11 +100,8 @@ export interface ScoreConfig {
   walkingDistancePenalty: number // 步行距离扣分因子
 }
 
-// ===== 应用整体状态 =====
-export interface AppState {
-  landmarks: Landmark[]
-  selectedProperty: Property | null
-  propertyRoutes: PropertyRouteResult | null
-  scoreConfig: ScoreConfig
-  isLoadingRoutes: boolean
+// ===== 收藏楼盘类型 =====
+export interface FavoriteProperty extends Property {
+  addedAt: number // timestamp
+  score?: number // 缓存的最新评分
 }
