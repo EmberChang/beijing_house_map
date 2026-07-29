@@ -7,81 +7,27 @@ import type {
   RouteInfo,
   TravelMode,
 } from '../types'
+import { LANDMARK_CATEGORIES } from '../types'
 
 const DEFAULT_CONFIG: ScoreConfig = {
-  transitWeight: 0.5,
-  drivingWeight: 0.3,
-  walkingWeight: 0.2,
+  transitWeight: 0.6,
+  drivingWeight: 0.4,
+  walkingWeight: 0,
   idealCommuteMinutes: 30,
   maxCommuteMinutes: 90,
   transferPenaltyPerTransfer: 8,
   walkingDistancePenalty: 0.5,
 }
 
-/**
- * 对单条路线评分 (0-100)
- * 基于理想通勤时间和最大可接受时间做归一化
- */
-function scoreRoute(route: RouteInfo | null | undefined, config: ScoreConfig): number {
-  if (!route) return 0
-
-  const minutes = route.duration / 60
-
-  if (minutes <= config.idealCommuteMinutes) {
-    return 100
-  }
-
-  if (minutes >= config.maxCommuteMinutes) {
-    return 10 // 最低分保底
-  }
-
-  // 线性衰减
-  const range = config.maxCommuteMinutes - config.idealCommuteMinutes
-  const exceed = minutes - config.idealCommuteMinutes
-  return 100 - (exceed / range) * 90
+function getCategoryWeight(category: string): number {
+  return LANDMARK_CATEGORIES.find(c => c.value === category)?.weight ?? 0.5
 }
 
 /**
- * 计算公交路线的换乘惩罚
- */
-function calcTransferPenalty(route: RouteInfo | null | undefined, config: ScoreConfig): number {
-  if (!route || route.mode !== 'transit') return 0
-  const transfers = route.transferCount || 0
-  return transfers * config.transferPenaltyPerTransfer
-}
-
-/**
- * 计算步行距离惩罚
- */
-function calcWalkingPenalty(route: RouteInfo | null | undefined, config: ScoreConfig): number {
-  if (!route) return 0
-  const walkMeters = route.walkingDistance || 0
-  // 每500米步行约扣2.5分
-  return (walkMeters / 500) * config.walkingDistancePenalty * 5
-}
-
-/**
- * 计算舒适度（基于换乘次数、步行距离）
- */
-function calcComfortScore(
-  transitRoute: RouteInfo | null | undefined,
-  _config: ScoreConfig
-): number {
-  if (!transitRoute || transitRoute.mode !== 'transit') return 100
-
-  let comfort = 100
-  // 换乘扣分
-  const transfers = transitRoute.transferCount || 0
-  comfort -= transfers * 10
-  // 步行距离扣分
-  const walkKm = (transitRoute.walkingDistance || 0) / 1000
-  comfort -= walkKm * 8
-
-  return Math.max(0, Math.min(100, comfort))
-}
-
-/**
- * 计算单个楼盘对所有地标的综合评分
+ * 评分模型：年加权往返总时间 → 百分制
+ * - 混合单程时间 = 公交 × 公交权重 + 驾车 × 驾车权重
+ * - 年总耗时 = 每年次数 × 往返时间 × 类型权重
+ * - 总分 0-100，耗时越少分越高
  */
 export function calculateScore(
   property: Property,
@@ -91,6 +37,7 @@ export function calculateScore(
 ): PropertyRouteResult {
   const routes: PropertyRouteResult['routes'] = []
   const breakdown: PropertyScore['breakdown'] = []
+  let totalWeightedYearlyHours = 0
 
   for (const landmark of landmarks) {
     const modes = routeMap.get(landmark.id)
@@ -104,50 +51,47 @@ export function calculateScore(
       modes: { driving, transit, walking },
     })
 
-    const transitScore = scoreRoute(transit, config)
-    const drivingScore = scoreRoute(driving, config)
-    const walkingScore = scoreRoute(walking, config)
-    const transferPenalty = calcTransferPenalty(transit, config)
-    const comfortScore = calcComfortScore(transit, config)
+    // 混合单程时间（分钟）
+    const tMin = transit ? transit.duration / 60 : Infinity
+    const dMin = driving ? driving.duration / 60 : Infinity
+    const mixedMin = config.transitWeight * tMin + config.drivingWeight * dMin
 
-    // 加权得分
-    const weightedScore =
-      transitScore * config.transitWeight +
-      drivingScore * config.drivingWeight +
-      walkingScore * config.walkingWeight -
-      transferPenalty
+    // 年加权耗时 = 年次数 × 往返分钟 / 60 × 类型权重
+    const visits = landmark.visitsPerYear || 1
+    const catWeight = getCategoryWeight(landmark.category)
+    const roundTripMin = mixedMin * 2
+    const yearlyHours = visits * roundTripMin / 60
+    const weightedHours = yearlyHours * catWeight
+    totalWeightedYearlyHours += weightedHours
 
+    // 每个地标的子评分
+    const subScore = Math.max(0, Math.min(100, 100 - (weightedHours / 500) * 100))
     breakdown.push({
       landmarkId: landmark.id,
       landmarkName: landmark.name,
-      score: Math.max(0, Math.min(100, weightedScore)),
+      score: Math.round(subScore * 10) / 10,
       details: {
-        transitScore,
-        drivingScore,
-        walkingScore,
-        transferPenalty,
-        comfortScore,
+        transitScore: Math.round((transit?.duration || 0) / 60),
+        drivingScore: Math.round((driving?.duration || 0) / 60),
+        walkingScore: Math.round((walking?.duration || 0) / 60),
+        transferPenalty: transit?.transferCount || 0,
+        comfortScore: Math.round(yearlyHours),
       },
     })
   }
 
-  // 按每年访问次数加权计算总分
-  const totalVisits = landmarks.reduce((sum, l) => sum + (l.visitsPerYear || l.weight * 30), 0)
-  const total =
-    totalVisits > 0
-      ? breakdown.reduce((sum, b) => {
-          const landmark = landmarks.find((l) => l.id === b.landmarkId)
-          const visits = landmark?.visitsPerYear || (landmark?.weight || 1) * 30
-          return sum + (b.score * visits) / totalVisits
-        }, 0)
-      : breakdown.reduce((sum, b) => sum + b.score, 0) / Math.max(1, breakdown.length)
+  // 总分归一化
+  const maxHours = landmarks.length * 200
+  const totalScore = Math.max(0, Math.min(100,
+    100 - (totalWeightedYearlyHours / maxHours) * 100
+  ))
 
   return {
     propertyId: property.id,
     propertyName: property.name,
     routes,
     score: {
-      total: Math.round(total * 10) / 10,
+      total: Math.round(totalScore * 10) / 10,
       breakdown,
     },
   }

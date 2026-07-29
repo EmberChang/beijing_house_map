@@ -343,10 +343,10 @@ export default function Sidebar() {
           </div>
           {propertyRoutes.routes.map((r) => (
             <div key={r.landmarkId} className="flex items-center justify-between py-1 text-xs border-b border-gray-100 last:border-0">
-              <span className="text-gray-600">{r.landmarkName}</span>
-              <span className="text-gray-800 font-medium">
+              <span className="text-gray-600 truncate flex-1">{r.landmarkName}</span>
+              <span className="text-gray-800 font-medium ml-2">
                 {r.modes.transit ? `${Math.round(r.modes.transit.duration / 60)}min` : '-'}
-                <span className="text-gray-400 mx-1">|</span>
+                <span className="text-gray-300 mx-0.5">|</span>
                 {r.modes.driving ? `${Math.round(r.modes.driving.duration / 60)}min` : '-'}
               </span>
             </div>

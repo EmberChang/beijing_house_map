@@ -1,17 +1,17 @@
 // ===== 地标类型 =====
 export type LandmarkCategory = 'home' | 'work' | 'business' | 'school' | 'hospital' | 'park' | 'gym' | 'restaurant' | 'transport' | 'other'
 
-export const LANDMARK_CATEGORIES: { value: LandmarkCategory; label: string; defaultVisits: number }[] = [
-  { value: 'home',        label: '🏠 家',       defaultVisits: 365 },
-  { value: 'work',        label: '💼 公司',     defaultVisits: 250 },
-  { value: 'business',    label: '🛍️ 商圈',     defaultVisits: 52 },
-  { value: 'school',      label: '🏫 学校',     defaultVisits: 200 },
-  { value: 'hospital',    label: '🏥 医院',     defaultVisits: 12 },
-  { value: 'park',        label: '🌳 公园',     defaultVisits: 24 },
-  { value: 'gym',         label: '🏋️ 健身',     defaultVisits: 100 },
-  { value: 'restaurant',  label: '🍽️ 餐饮',     defaultVisits: 36 },
-  { value: 'transport',   label: '🚉 交通枢纽',  defaultVisits: 100 },
-  { value: 'other',       label: '📍 其他',     defaultVisits: 12 },
+export const LANDMARK_CATEGORIES: { value: LandmarkCategory; label: string; defaultVisits: number; weight: number }[] = [
+  { value: 'home',        label: '🏠 家',       defaultVisits: 365, weight: 1   },
+  { value: 'work',        label: '💼 公司',     defaultVisits: 250, weight: 1   },
+  { value: 'business',    label: '🛍️ 商圈',     defaultVisits: 52,  weight: 0.8 },
+  { value: 'school',      label: '🏫 学校',     defaultVisits: 200, weight: 0.8 },
+  { value: 'hospital',    label: '🏥 医院',     defaultVisits: 12,  weight: 0.6 },
+  { value: 'park',        label: '🌳 公园',     defaultVisits: 24,  weight: 0.5 },
+  { value: 'gym',         label: '🏋️ 健身',     defaultVisits: 100, weight: 0.7 },
+  { value: 'restaurant',  label: '🍽️ 餐饮',     defaultVisits: 36,  weight: 0.7 },
+  { value: 'transport',   label: '🚉 交通枢纽',  defaultVisits: 100, weight: 0.6 },
+  { value: 'other',       label: '📍 其他',     defaultVisits: 12,  weight: 0.5 },
 ]
 
 export interface Landmark {
