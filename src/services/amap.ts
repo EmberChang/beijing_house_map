@@ -203,6 +203,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 // ===== 加载高德 JS API 2.0 =====
+// 注意：2021年12月之后申请的 Key 必须设置安全密钥
 let amapLoaded = false
 let amapLoadPromise: Promise<void> | null = null
 
@@ -212,8 +213,18 @@ export function loadAMapScript(): Promise<void> {
 
   amapLoadPromise = new Promise((resolve, reject) => {
     const key = AMAP_KEY
+    const securityJsCode = import.meta.env.VITE_AMAP_SECURITY_CODE || ''
+
+    // 安全密钥必须在脚本加载前设置（2021年12月之后申请的Key必需）
+    if (securityJsCode) {
+      ;(window as any)._AMapSecurityConfig = {
+        securityJsCode,
+      }
+    }
+
     const script = document.createElement('script')
-    script.src = `https://webapi.amap.com/v/2.0/maps?v=2.0&key=${key}&plugin=AMap.Driving,AMap.Transfer,AMap.Walking,AMap.PlaceSearch,AMap.Geocoder`
+    // 官方正确URL格式
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=${key}&plugin=AMap.Driving,AMap.Transfer,AMap.Walking,AMap.PlaceSearch,AMap.Geocoder`
 
     const timeout = setTimeout(() => {
       reject(new Error('Map script load timeout'))

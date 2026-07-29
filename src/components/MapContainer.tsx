@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { loadAMapScript, isAMapLoaded } from '../services/amap'
+import { loadAMapScript } from '../services/amap'
 import { useLandmarkStore } from '../stores/landmarkStore'
 import { useRouteStore } from '../stores/routeStore'
 
@@ -7,35 +7,51 @@ export default function MapContainer() {
   const mapRef = useRef<any>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
-  const [mapError, setMapError] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
   const { landmarks } = useLandmarkStore()
   const { searchResults, setSelectedProperty } = useRouteStore()
 
   // 初始化地图
   useEffect(() => {
     let cancelled = false
-    loadAMapScript()
-      .then(() => {
-        if (cancelled) return
-        const AMap = (window as any).AMap
-        if (!AMap || mapInstanceRef.current) return
 
-        const map = new AMap.Map(mapRef.current, {
+    async function initMap() {
+      try {
+        await loadAMapScript()
+        if (cancelled) return
+
+        const AMap = (window as any).AMap
+        if (!AMap?.Map) {
+          await new Promise<void>((r) => setTimeout(r, 1500))
+          if (cancelled) return
+        }
+
+        const amap = (window as any).AMap
+        if (!amap?.Map) return
+
+        if (mapInstanceRef.current) {
+          setMapReady(true)
+          return
+        }
+
+        const map = new amap.Map(mapRef.current, {
           zoom: 12,
           center: [116.397428, 39.90923],
           viewMode: '3D',
         })
 
-        map.addControl(new AMap.Scale())
-        map.addControl(new AMap.ToolBar({ position: 'RT' }))
-
         mapInstanceRef.current = map
-      })
-      .catch(() => {
-        if (!cancelled) setMapError(true)
-      })
+        if (!cancelled) setMapReady(true)
+      } catch (err) {
+        console.error('Map init error:', err)
+      }
+    }
 
-    return () => { cancelled = true }
+    initMap()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // 地标标记更新
@@ -99,16 +115,16 @@ export default function MapContainer() {
         className="map-container absolute inset-0"
         style={{ zIndex: 0 }}
       />
-      {mapError && (
+      {!mapReady && (
         <div
           className="absolute inset-0 flex flex-col items-center justify-center"
           style={{
-            zIndex: 0,
+            zIndex: 1,
             background: 'linear-gradient(135deg, #e8f4f8 0%, #d4e8f0 30%, #c8e6c9 60%, #e8f5e9 100%)',
           }}
         >
           <div className="text-6xl mb-4">🗺️</div>
-          <p className="text-gray-500 text-sm">地图加载中，请确保网络连接正常</p>
+          <p className="text-gray-500 text-sm">地图加载中...</p>
           <p className="text-gray-400 text-xs mt-1">搜索楼盘后将在此显示标记</p>
         </div>
       )}
