@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Landmark } from '../types'
+import { STORAGE_KEYS } from './historyStore'
 
 interface LandmarkStore {
   landmarks: Landmark[]
@@ -10,7 +11,7 @@ interface LandmarkStore {
   saveToStorage: () => void
 }
 
-const STORAGE_KEY = 'house_map_landmarks'
+const STORAGE_KEY = STORAGE_KEYS.landmarks
 
 export const useLandmarkStore = create<LandmarkStore>((set, get) => ({
   landmarks: [],

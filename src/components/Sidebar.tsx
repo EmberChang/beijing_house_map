@@ -24,8 +24,8 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
 
   const { landmarks, addLandmark, removeLandmark } = useLandmarkStore()
-  const { favorites, removeFavorite } = useFavoritesStore()
-  const { history, addEntry, clearHistory } = useHistoryStore()
+  const { favorites, removeFavorite, updateScore } = useFavoritesStore()
+  const { history, addEntry, clearHistory, exportData } = useHistoryStore()
   const {
     searchResults, setSearchResults, setSelectedProperty, selectedProperty,
     propertyRoutes, setPropertyRoutes, setIsLoadingRoutes, scoreConfig,
@@ -71,6 +71,7 @@ export default function Sidebar() {
       const result = calculateScore(property, landmarks, routeMap, scoreConfig)
       setPropertyRoutes(result)
       addEntry(property, result)
+      updateScore(property.id, result.score.total)
     } catch (err) { console.error('Route calc error:', err) }
     finally { setIsLoadingRoutes(false) }
   }
@@ -285,9 +286,19 @@ export default function Sidebar() {
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-400">{history.length} 条记录</span>
-              {history.length > 0 && (
-                <button onClick={clearHistory} className="text-xs text-red-400 hover:text-red-600">清空</button>
-              )}
+              <div className="flex gap-2">
+                <button onClick={() => {
+                  const json = exportData()
+                  const blob = new Blob([json], { type: 'application/json' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url; a.download = 'house_map_data.json'
+                  a.click(); URL.revokeObjectURL(url)
+                }} className="text-xs text-blue-500 hover:text-blue-700">📥 导出</button>
+                {history.length > 0 && (
+                  <button onClick={clearHistory} className="text-xs text-red-400 hover:text-red-600">清空</button>
+                )}
+              </div>
             </div>
             {history.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-4">暂无计算记录<br/><span className="text-xs">搜索地点后点击"计算路线"</span></p>

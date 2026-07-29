@@ -11,7 +11,9 @@ interface FavoritesStore {
   saveToStorage: () => void
 }
 
-const STORAGE_KEY = 'house_map_favorites'
+import { STORAGE_KEYS } from './historyStore'
+
+const STORAGE_KEY = STORAGE_KEYS.favorites
 
 export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
   favorites: [],
