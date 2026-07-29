@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { loadAMapScript } from '../services/amap'
+import { loadAMap } from '../services/amap'
 import { useLandmarkStore } from '../stores/landmarkStore'
 import { useRouteStore } from '../stores/routeStore'
 
@@ -17,28 +17,22 @@ export default function MapContainer() {
 
     async function initMap() {
       try {
-        await loadAMapScript()
+        const AMap = await loadAMap()
         if (cancelled) return
-
-        const AMap = (window as any).AMap
-        if (!AMap?.Map) {
-          await new Promise<void>((r) => setTimeout(r, 1500))
-          if (cancelled) return
-        }
-
-        const amap = (window as any).AMap
-        if (!amap?.Map) return
 
         if (mapInstanceRef.current) {
           setMapReady(true)
           return
         }
 
-        const map = new amap.Map(mapRef.current, {
+        const map = new AMap.Map(mapRef.current, {
           zoom: 12,
           center: [116.397428, 39.90923],
           viewMode: '3D',
         })
+
+        map.addControl(new AMap.Scale())
+        map.addControl(new AMap.ToolBar({ position: 'RT' }))
 
         mapInstanceRef.current = map
         if (!cancelled) setMapReady(true)

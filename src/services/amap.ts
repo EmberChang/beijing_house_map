@@ -1,3 +1,4 @@
+import AMapLoader from '@amap/amap-jsapi-loader'
 import type {
   Landmark,
   Property,
@@ -202,49 +203,41 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// ===== 加载高德 JS API 2.0 =====
-// 注意：2021年12月之后申请的 Key 必须设置安全密钥
-let amapLoaded = false
-let amapLoadPromise: Promise<void> | null = null
+// ===== 加载高德 JS API 2.0（使用官方 Loader） =====
+let amapInstance: any = null
+let amapLoadPromise: Promise<any> | null = null
 
-export function loadAMapScript(): Promise<void> {
-  if (amapLoaded) return Promise.resolve()
+export async function loadAMap(): Promise<any> {
+  if (amapInstance) return amapInstance
   if (amapLoadPromise) return amapLoadPromise
 
-  amapLoadPromise = new Promise((resolve, reject) => {
-    const key = AMAP_KEY
-    const securityJsCode = import.meta.env.VITE_AMAP_SECURITY_CODE || ''
+  const securityCode = import.meta.env.VITE_AMAP_SECURITY_CODE || ''
+  if (securityCode) {
+    ;(window as any)._AMapSecurityConfig = { securityJsCode: securityCode }
+  }
 
-    // 安全密钥必须在脚本加载前设置（2021年12月之后申请的Key必需）
-    if (securityJsCode) {
-      ;(window as any)._AMapSecurityConfig = {
-        securityJsCode,
-      }
-    }
-
-    const script = document.createElement('script')
-    // 官方正确URL格式
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${key}&plugin=AMap.Driving,AMap.Transfer,AMap.Walking,AMap.PlaceSearch,AMap.Geocoder`
-
-    const timeout = setTimeout(() => {
-      reject(new Error('Map script load timeout'))
-    }, 10000)
-
-    script.onload = () => {
-      clearTimeout(timeout)
-      amapLoaded = true
-      resolve()
-    }
-    script.onerror = () => {
-      clearTimeout(timeout)
-      reject(new Error('Map script load failed'))
-    }
-    document.head.appendChild(script)
+  amapLoadPromise = AMapLoader.load({
+    key: AMAP_KEY,
+    version: '2.0',
+    plugins: [
+      'AMap.Scale',
+      'AMap.ToolBar',
+      'AMap.Driving',
+      'AMap.Transfer',
+      'AMap.Walking',
+      'AMap.PlaceSearch',
+      'AMap.Geocoder',
+      'AMap.AutoComplete',
+    ],
   })
+    .then((AMap) => {
+      amapInstance = AMap
+      return AMap
+    })
+    .catch((err) => {
+      amapLoadPromise = null
+      throw err
+    })
 
   return amapLoadPromise
-}
-
-export function isAMapLoaded(): boolean {
-  return amapLoaded && !!(window as any).AMap
 }
