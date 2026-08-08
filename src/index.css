@@ -2,55 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+:root {
+  --amap-blue: #1677FF;
+  --amap-blue-light: #E6F4FF;
+  --amap-green: #00B96B;
+  --amap-orange: #FA8C16;
+  --amap-red: #F5222D;
+  --amap-text: #1F1F1F;
+  --amap-text-secondary: #666;
+  --amap-border: #E8E8E8;
+  --amap-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --amap-radius: 10px;
+  --amap-radius-sm: 8px;
+  --amap-radius-xs: 6px;
 }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body, #root {
-  width: 100%;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
-    sans-serif;
+  width: 100%; height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--amap-text);
 }
 
-.map-container {
-  width: 100%;
-  height: 100%;
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 2px; }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+.amap-panel {
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(20px);
+  border-radius: var(--amap-radius);
+  box-shadow: var(--amap-shadow);
+  border: 1px solid var(--amap-border);
 }
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.amap-input {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--amap-border);
+  border-radius: var(--amap-radius-xs); font-size: 13px; outline: none;
+  transition: border 0.2s; background: #fff; color: var(--amap-text);
 }
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+.amap-input:focus { border-color: var(--amap-blue); box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
+.amap-input::placeholder { color: #bfbfbf; }
+.amap-btn-primary { background: var(--amap-blue); color: #fff; }
+.amap-btn-primary:hover { background: #4096ff; }
+.amap-card {
+  background: #fff; border-radius: var(--amap-radius-sm);
+  border: 1px solid var(--amap-border); padding: 10px 12px; cursor: pointer;
+  transition: all 0.2s;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+.amap-card:hover { border-color: var(--amap-blue); box-shadow: 0 2px 8px rgba(22,119,255,0.08); }
+.amap-card-active { border-color: var(--amap-blue); background: var(--amap-blue-light); }
+.amap-tag {
+  display: inline-flex; align-items: center; padding: 1px 8px;
+  border-radius: 4px; font-size: 11px; font-weight: 500;
 }
-
-/* Panel animations */
-.panel-slide-in {
-  animation: slideIn 0.3s ease-out;
+.amap-tag-blue { background: var(--amap-blue-light); color: var(--amap-blue); }
+.score-high { color: var(--amap-green); }
+.score-mid { color: var(--amap-orange); }
+.score-low { color: var(--amap-red); }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
+.amap-fade-in { animation: fadeIn 0.2s ease; }

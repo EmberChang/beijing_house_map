@@ -176,13 +176,13 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="absolute top-3 left-3 z-20 w-80 max-h-[calc(100vh-24px)] flex flex-col bg-white/95 backdrop-blur rounded-lg shadow-lg overflow-hidden">
+    <div className="absolute top-3 left-3 z-20 w-80 max-h-[calc(100vh-24px)] flex flex-col amap-panel overflow-hidden amap-fade-in">
       {/* Tabs */}
-      <div className="flex border-b shrink-0">
+      <div className="amap-tabs shrink-0 px-3">
         {(['search', 'landmarks', 'favorites', 'ranking'] as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab === t ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-            {{ search: '🔍 搜索', landmarks: '📍 地标', favorites: '⭐ 收藏', ranking: '🏆 排行' }[t]}
+            className={`amap-tab ${tab === t ? 'amap-tab-active' : ''}`}>
+            {{ search: '搜索', landmarks: '地标', favorites: '收藏', ranking: '排行' }[t]}
             {t === 'favorites' && favorites.length > 0 &&
               <span className="ml-1 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">{favorites.length}</span>}
           </button>
@@ -195,12 +195,12 @@ export default function Sidebar() {
         {tab === 'search' && (
           <div className="space-y-3">
             <div className="flex gap-2">
-              <input type="text" placeholder="搜索地点（不限类型）..." value={keyword}
+              <input type="text" placeholder="搜索任何地点..." value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                className="amap-input flex-1" />
               <button onClick={handleSearch} disabled={isSearching}
-                className="px-3 py-2 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 disabled:opacity-50">
+                className="amap-btn amap-btn-primary">
                 {isSearching ? '...' : '搜索'}
               </button>
             </div>
@@ -209,7 +209,11 @@ export default function Sidebar() {
                 <p className="text-xs text-gray-400">找到 {searchResults.length} 个结果</p>
                 {searchResults.map((p) => (
                   <button key={p.id} onClick={() => setSelectedProperty(p)}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedProperty?.id === p.id ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'}`}>
+                    className={`w-full text-left p-2.5 rounded-lg text-sm transition-all border ${
+                      selectedProperty?.id === p.id
+                        ? 'border-blue-400 bg-blue-50'
+                        : 'border-transparent hover:border-gray-200 hover:bg-gray-50'
+                    }`}>
                     <div className="font-medium truncate">{p.name}</div>
                     <div className="text-xs text-gray-400 truncate">{p.address}</div>
                   </button>
@@ -229,13 +233,13 @@ export default function Sidebar() {
               <div className="space-y-2 p-3 bg-gray-50 rounded-md">
                 <input type="text" placeholder="名称（如：我家）" value={lmName}
                   onChange={(e) => setLmName(e.target.value)}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm" />
+                  className="amap-input" />
                 <div className="relative">
                   <input type="text" placeholder="搜索地址..." value={lmAddr}
                     onChange={(e) => handleLmAddrChange(e.target.value)}
                     onFocus={() => { if (lmTips.length > 0) setLmTipsVisible(true) }}
                     onBlur={() => setTimeout(() => setLmTipsVisible(false), 300)}
-                    className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm" />
+                    className="amap-input" />
                   {lmTipsVisible && lmTips.length > 0 && (
                     <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
                       {lmTips.map((tip, i) => (
@@ -255,21 +259,21 @@ export default function Sidebar() {
                     const defaults = getCategoryDefaults(cat)
                     setLmVisits(defaults.defaultVisits)
                   }}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm">
+                  className="amap-select">
                   {LANDMARK_CATEGORIES.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 whitespace-nowrap">每年去</span>
+                  <span className="text-xs text-gray-400">每年去</span>
                   <input type="number" min={1} max={3650} value={lmVisits}
                     onChange={(e) => setLmVisits(Number(e.target.value) || 1)}
-                    className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm text-center" />
-                  <span className="text-xs text-gray-500">次</span>
+                    className="amap-input w-20 text-center" />
+                  <span className="text-xs text-gray-400">次</span>
                 </div>
                 {lmError && <p className="text-red-500 text-xs">{lmError}</p>}
                 <button onClick={handleAddLandmark}
-                  className="w-full py-2 bg-green-500 text-white rounded-md text-sm">确认添加</button>
+                  className="amap-btn amap-btn-primary w-full">确认添加</button>
               </div>
             )}
             {landmarks.length === 0 ? (
