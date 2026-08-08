@@ -17,6 +17,7 @@ export default function MapContainer() {
   const markersRef = useRef<any[]>([])
   const infoWindowRef = useRef<any>(null)
   const [mapReady, setMapReady] = useState(false)
+  const [pickMode, setPickMode] = useState(false)
   const { landmarks } = useLandmarkStore()
   const { searchResults, selectedProperty, setSelectedProperty, focusLocation, setFocusLocation } = useRouteStore()
   const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore()
@@ -33,7 +34,11 @@ export default function MapContainer() {
         })
         map.addControl(new AMap.Scale())
         map.addControl(new AMap.ToolBar({ position: 'RT' }))
-        map.on('click', () => { if (infoWindowRef.current) infoWindowRef.current.close() })
+        map.on('click', (e: any) => {
+          if (infoWindowRef.current) infoWindowRef.current.close()
+          if (!pickMode) return
+          handlePickPoint(e.lnglat.lng, e.lnglat.lat)
+        })
         // 地图点击选点：右键或长按获取位置
         map.on('rightclick', async (e: any) => {
           const addr = await reverseGeocode(e.lnglat.lng, e.lnglat.lat)
@@ -71,6 +76,20 @@ export default function MapContainer() {
     mapInstanceRef.current.setZoomAndCenter(15, [focusLocation.lng, focusLocation.lat])
     setFocusLocation(null)
   }, [focusLocation, setFocusLocation])
+
+  async function handlePickPoint(lng: number, lat: number) {
+    const addr = await reverseGeocode(lng, lat)
+    if (!addr) return
+    const prop: Property = {
+      id: 'pick_' + Date.now(),
+      name: addr.split(/区|县|市/).pop()?.trim() || addr,
+      address: addr,
+      lng,
+      lat,
+    }
+    setSelectedProperty(prop)
+    showInfoWindow(prop)
+  }
 
   function showInfoWindow(property: Property) {
     const AMap = (window as any).AMap
@@ -186,6 +205,27 @@ export default function MapContainer() {
         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ zIndex: 1, background: 'linear-gradient(135deg, #e8f4f8 0%, #d4e8f0 30%, #c8e6c9 60%, #e8f5e9 100%)' }}>
           <div className="text-6xl mb-4">🗺️</div>
           <p className="text-gray-500 text-sm">地图加载中...</p>
+        </div>
+      )}
+
+      {/* 选点模式按钮 */}
+      {mapReady && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+          <button
+            onClick={() => setPickMode(!pickMode)}
+            className={`px-4 py-2 rounded-full text-sm font-medium shadow-lg transition-all ${
+              pickMode
+                ? 'bg-blue-500 text-white shadow-blue-300'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+            }`}
+          >
+            {pickMode ? '📍 点击地图选点（已开启）' : '📍 地图选点'}
+          </button>
+        </div>
+      )}
+      {pickMode && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10 bg-blue-500 text-white px-4 py-1.5 rounded-full text-xs shadow-lg">
+          点击地图任意位置选取地点
         </div>
       )}
     </>
